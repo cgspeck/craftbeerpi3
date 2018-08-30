@@ -169,7 +169,8 @@ class BoilStep(StepBase):
     hop_4 = Property.Number("Hop 4 Addition", configurable=True)
     hop_4_added = Property.Number("", default_value=None, description="Fourth Hop alert")
     hop_5 = Property.Number("Hop 5 Addition", configurable=True)
-    hop_5_added = Property.Number("", default_value=None, description="Fives Hop alert")
+    hop_5_added = Property.Number("", default_value=None, description="Fifth Hop alert")
+    hop_timer_mode = Property.Select("Hop timer mode", options=["Stopwatch", "Countdown"], description="Stopwatch counts time from start of boil, Countdown counts time to end of boil.")
 
     def init(self):
         '''
@@ -201,11 +202,17 @@ class BoilStep(StepBase):
 
 
     def check_hop_timer(self, number, value):
+        if self.__getattribute__("hop_%s_added" % number) is not True:
+            do_message = False
 
-        if self.__getattribute__("hop_%s_added" % number) is not True and time.time() > (
-            self.timer_end - (int(self.timer) * 60 - int(value) * 60)):
-            self.__setattr__("hop_%s_added" % number, True)
-            self.notify("Hop Alert", "Please add Hop %s" % number, timeout=None)
+            if self.hop_timer_mode == "Countdown" and time.time() > (self.timer_end - (int(value) * 60)):
+                do_message = True
+            elif time.time() > (self.timer_end - (int(self.timer) * 60 - int(value) * 60)):
+                do_message = True
+
+            if do_message:
+                self.__setattr__("hop_%s_added" % number, True)
+                self.notify("Hop Alert", "Please add Hop %s" % number, timeout=None)
 
     def execute(self):
         '''
